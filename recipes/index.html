@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>曜日ごとの夕食レシピ</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-left">
+      <a class="home-link" href="../index.html" aria-label="ポータルに戻る">⌂</a>
+      <div>
+        <div class="eyebrow">DINNER RECIPES</div>
+        <h1>夕食レシピ</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="recipe-body" id="recipeBody"><div class="loading">読み込み中…</div></div>
+</div>
+
+<script>
+const WEEKDAYS = [
+  { id: "mon", label: "月" }, { id: "tue", label: "火" }, { id: "wed", label: "水" },
+  { id: "thu", label: "木" }, { id: "fri", label: "金" }, { id: "sat", label: "土" }, { id: "sun", label: "日" },
+];
+let currentDay = (() => {
+  const map = { 0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat" };
+  return map[new Date().getDay()];
+})();
+
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = WEEKDAYS.map(w =>
+    `<div class="tab ${currentDay===w.id?'active':''}" data-day="${w.id}">${w.label}</div>`
+  ).join("");
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => { currentDay = t.dataset.day; loadRecipe(); renderTabs(); }));
+}
+
+async function loadRecipe() {
+  const body = document.getElementById("recipeBody");
+  body.innerHTML = `<div class="loading">読み込み中…</div>`;
+  try {
+    const res = await fetch(`./${currentDay}.md?_=${Date.now()}`);
+    if (!res.ok) throw new Error("ファイルが見つかりません: " + currentDay + ".md");
+    const text = await res.text();
+    body.innerHTML = marked.parse(text);
+  } catch (e) {
+    body.innerHTML = `<div style="color:#C55A1E;">読み込みに失敗しました。<br>${e.message}<br><br>recipesフォルダに ${currentDay}.md を置いてください。</div>`;
+  }
+}
+
+renderTabs();
+loadRecipe();
+</script>
+</body>
+</html>
