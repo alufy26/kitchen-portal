@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>コンビニ朝食リスト</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-left">
+      <a class="home-link" href="index.html" aria-label="ポータルに戻る">⌂</a>
+      <div>
+        <div class="eyebrow">CONVENIENCE BREAKFAST</div>
+        <h1>コンビニ朝食リスト</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="list"><div class="loading">読み込み中…</div></div>
+  <div class="error-banner" id="errorBanner"></div>
+  <button class="fab" id="fabAdd" aria-label="追加">＋</button>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal fade" id="modalBox">
+      <div class="modal-title" id="modalTitle">朝食メニューを追加</div>
+      <label class="field-label">品名</label>
+      <input id="fName" placeholder="例：おにぎり＋サラダチキン">
+      <label class="field-label">メモ（任意）</label>
+      <textarea id="fMemo" style="height:56px; resize:none;" placeholder="例：お店：セブンイレブン"></textarea>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="btnCancel">キャンセル</button>
+        <button class="btn-save" id="btnSave">追加する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/site-config.js"></script>
+<script src="assets/api.js"></script>
+<script>
+const SHEET = "BreakfastList";
+const WEEKDAYS = [
+  { id: "mon", label: "月" }, { id: "tue", label: "火" }, { id: "wed", label: "水" },
+  { id: "thu", label: "木" }, { id: "fri", label: "金" },
+];
+
+let items = [];
+let currentDay = (() => {
+  const idx = new Date().getDay(); // 0:日 1:月 ... 6:土
+  const map = { 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri" };
+  return map[idx] || "mon";
+})();
+
+function escapeHtml(s) { return (s||"").toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showError(msg) {
+  const el = document.getElementById("errorBanner");
+  if (!msg) { el.style.display = "none"; return; }
+  el.textContent = msg; el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 4000);
+}
+
+async function loadItems() {
+  try { items = await Api.list(SHEET); }
+  catch (e) { showError("読み込みに失敗しました: " + e.message); items = []; }
+  renderAll();
+}
+
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = WEEKDAYS.map(w =>
+    `<div class="tab ${currentDay===w.id?'active':''}" data-day="${w.id}">${w.label}曜日</div>`
+  ).join("");
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => { currentDay = t.dataset.day; renderAll(); }));
+}
+
+function renderList() {
+  const listEl = document.getElementById("list");
+  const arr = items.filter(i => i.weekday === currentDay);
+  if (arr.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">この曜日のメニューはまだありません。<br>右下の「＋」から追加しましょう。</div>`;
+    return;
+  }
+  listEl.innerHTML = arr.map(it => `
+    <div class="card" data-id="${it.id}">
+      <div style="flex:1; min-width:0;">
+        <div class="card-name">${escapeHtml(it.name)}</div>
+        ${it.memo ? `<div class="card-memo">${escapeHtml(it.memo)}</div>` : ""}
+      </div>
+      <button class="small-btn" data-remove="${it.id}">削除</button>
+    </div>
+  `).join("");
+  listEl.querySelectorAll("[data-remove]").forEach(btn => btn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    try { await Api.remove(SHEET, btn.dataset.remove); await loadItems(); }
+    catch (err) { showError("削除に失敗しました: " + err.message); }
+  }));
+}
+
+function renderAll() { renderTabs(); renderList(); }
+
+function openModal() { document.getElementById("modalOverlay").classList.add("open"); }
+function closeModal() { document.getElementById("modalOverlay").classList.remove("open"); }
+
+function openAdd() {
+  document.getElementById("fName").value = "";
+  document.getElementById("fMemo").value = "";
+  openModal();
+}
+
+async function saveForm() {
+  const name = document.getElementById("fName").value.trim();
+  if (!name) return;
+  const btn = document.getElementById("btnSave");
+  btn.disabled = true;
+  try {
+    await Api.add(SHEET, { weekday: currentDay, name, memo: document.getElementById("fMemo").value.trim() });
+    closeModal();
+    await loadItems();
+  } catch (err) { showError("追加に失敗しました: " + err.message); }
+  finally { btn.disabled = false; }
+}
+
+document.getElementById("fabAdd").addEventListener("click", openAdd);
+document.getElementById("btnCancel").addEventListener("click", closeModal);
+document.getElementById("btnSave").addEventListener("click", saveForm);
+document.getElementById("modalOverlay").addEventListener("click", (e) => { if (e.target.id === "modalOverlay") closeModal(); });
+
+loadItems();
+</script>
+</body>
+</html>
