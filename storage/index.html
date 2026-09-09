@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>食材の保存方法</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-left">
+      <a class="home-link" href="../index.html" aria-label="ポータルに戻る">⌂</a>
+      <div>
+        <div class="eyebrow">STORAGE TIPS</div>
+        <h1>食材の保存方法</h1>
+      </div>
+    </div>
+  </div>
+
+  <div id="listView">
+    <input id="searchInput" placeholder="食材名で検索（例：キャベツ）" style="margin-bottom:14px;">
+    <div id="recipeList"><div class="loading">読み込み中…</div></div>
+  </div>
+
+  <div id="detailView" style="display:none;">
+    <button id="btnBack" style="background:#fff; border:1px solid #DCEFF0; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; color:#3E6B72; cursor:pointer; margin-bottom:14px;">← 一覧に戻る</button>
+    <div class="recipe-body" id="recipeBody"><div class="loading">読み込み中…</div></div>
+  </div>
+</div>
+
+<script>
+let manifest = [];
+
+function normalize(s) { return (s||"").toString().trim().toLowerCase(); }
+function escapeHtml(s) { return (s||"").toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadManifest() {
+  const listEl = document.getElementById("recipeList");
+  try {
+    const res = await fetch(`./manifest.json?_=${Date.now()}`);
+    if (!res.ok) throw new Error("manifest.jsonが見つかりません");
+    manifest = await res.json();
+  } catch (e) {
+    listEl.innerHTML = `<div style="color:#C55A1E;">一覧の読み込みに失敗しました。<br>${e.message}</div>`;
+    return;
+  }
+  renderList();
+}
+
+function renderList() {
+  const listEl = document.getElementById("recipeList");
+  const q = normalize(document.getElementById("searchInput").value);
+  const filtered = q ? manifest.filter(r => normalize(r.label).includes(q)) : manifest;
+
+  if (manifest.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">まだ保存方法が登録されていません。<br>storage/manifest.json に追加してください。</div>`;
+    return;
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">「${escapeHtml(document.getElementById("searchInput").value)}」に一致する食材が見つかりませんでした。</div>`;
+    return;
+  }
+  listEl.innerHTML = filtered.map((r) => `
+    <div class="card" data-id="${r.id}">
+      <div style="flex:1; min-width:0;">
+        <div class="card-name">${escapeHtml(r.label)}</div>
+        ${r.desc ? `<div class="card-memo">${escapeHtml(r.desc)}</div>` : ""}
+      </div>
+    </div>
+  `).join("");
+  listEl.querySelectorAll(".card").forEach(card => card.addEventListener("click", () => {
+    openEntry(manifest.find(r => r.id === card.dataset.id));
+  }));
+}
+
+async function openEntry(entry) {
+  document.getElementById("listView").style.display = "none";
+  document.getElementById("detailView").style.display = "block";
+  const body = document.getElementById("recipeBody");
+  body.innerHTML = `<div class="loading">読み込み中…</div>`;
+  try {
+    const res = await fetch(`./${entry.file}?_=${Date.now()}`);
+    if (!res.ok) throw new Error("ファイルが見つかりません: " + entry.file);
+    const text = await res.text();
+    body.innerHTML = marked.parse(text);
+  } catch (e) {
+    body.innerHTML = `<div style="color:#C55A1E;">読み込みに失敗しました。<br>${e.message}</div>`;
+  }
+}
+
+document.getElementById("btnBack").addEventListener("click", () => {
+  document.getElementById("detailView").style.display = "none";
+  document.getElementById("listView").style.display = "block";
+});
+document.getElementById("searchInput").addEventListener("input", renderList);
+
+loadManifest();
+</script>
+</body>
+</html>
