@@ -46,7 +46,14 @@ async function loadManifest() {
     listEl.innerHTML = `<div style="color:#C55A1E;">一覧の読み込みに失敗しました。<br>${e.message}</div>`;
     return;
   }
+  const params = new URLSearchParams(location.search);
+  const q = params.get("q");
+  if (q) document.getElementById("searchInput").value = q;
   renderList();
+  if (q) {
+    const hits = manifest.filter(r => normalize(r.label).includes(normalize(q)));
+    if (hits.length === 1) openEntry(hits[0]);
+  }
 }
 
 function renderList() {
