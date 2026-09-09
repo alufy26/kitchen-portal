@@ -209,7 +209,10 @@ function renderList() {
           ${expiryBadgeHtml(it.expiry)}
           ${it.memo ? `<div class="card-memo">${escapeHtml(it.memo)}</div>` : ''}
         </div>
-        <button class="small-btn" data-remove="${it.id}">使い切った</button>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+          <a class="small-btn" href="storage/index.html?q=${encodeURIComponent(it.name)}" style="text-align:center; text-decoration:none;" onclick="event.stopPropagation();">📦 保存方法</a>
+          <button class="small-btn" data-remove="${it.id}">使い切った</button>
+        </div>
       </div>`;
     });
     html += `</div>`;
