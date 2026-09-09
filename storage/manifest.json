@@ -1,3 +1,7 @@
 [
-  { "id": "sample_cabbage", "label": "キャベツ", "file": "sample_cabbage.md", "desc": "冷蔵・冷凍どちらも対応" }
+  { "id": "えのき", "label": "えのき", "file": "えのき.md", "desc": "冷蔵" },
+  { "id": "長ねぎ", "label": 長ねぎ", "file": "長ねぎ.md", "desc": "野菜室" },
+  { "id": "白菜", "label":白菜", "file": 白菜.md", "desc": "野菜室" },
+  { "id": "トマト", "label":トマト", "file": トマト.md", "desc": "野菜室" },
+
 ]
