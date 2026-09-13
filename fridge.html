@@ -87,7 +87,13 @@ let editingId = null;
 let formLocation = "freezer";
 
 function locationInfo(id) { return LOCATIONS.find(l => l.id === id) || LOCATIONS[0]; }
-function todayISO() { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); }
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 function parseDateFlexible(dateStr) {
   if (!dateStr) return new Date(NaN);
   const s = String(dateStr);
@@ -294,6 +300,7 @@ function openAdd() {
   document.getElementById("dupWarning").style.display = "none";
   document.getElementById("btnSave").textContent = "追加する";
   openModal();
+  setTimeout(() => document.getElementById("fName").focus(), 0);
 }
 function openEdit(item) {
   editingId = item.id;

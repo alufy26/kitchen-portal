@@ -78,6 +78,13 @@ let currentPeriod = (() => {
 function toBool(v) { return v === true || v === "true" || v === "TRUE"; }
 function escapeHtml(s) { return (s||"").toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normalize(s) { return (s||"").toString().trim().toLowerCase(); }
+function todayISODate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function showError(msg) {
   const el = document.getElementById("errorBanner");
@@ -153,7 +160,7 @@ function openEdit(item) {
 async function quickAdd(name) {
   if (!name.trim()) return;
   try {
-    const payload = { name: name.trim(), quantity: "", memo: "", checked: false, addedDate: new Date().toISOString().slice(0,10) };
+    const payload = { name: name.trim(), quantity: "", memo: "", checked: false, addedDate: todayISODate() };
     const result = await Api.add(SHEET, payload);
     items.push({ id: result.id, ...payload });
     renderList();
@@ -355,7 +362,7 @@ async function addCheckedCandidates() {
         quantity,
         memo: "夕食レシピより自動追加",
         checked: false,
-        addedDate: new Date().toISOString().slice(0,10),
+        addedDate: todayISODate(),
       };
       const result = await Api.add(SHEET, payload);
       items.push({ id: result.id, ...payload });
