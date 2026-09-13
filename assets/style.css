@@ -93,7 +93,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #1B7A8C; outline-
   font-size: 13px; font-weight: 700; color: #3E6B72; cursor: pointer;
 }
 .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; font-weight: 700; color: #3E6B72; }
-.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.modal-actions {
+  display: flex; gap: 10px; margin-top: 18px;
+  position: sticky; bottom: -24px; background: #fff;
+  padding: 12px 0 24px; margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px;
+  box-shadow: 0 -6px 10px -6px rgba(15,76,87,0.12);
+}
 .btn-cancel {
   flex: 1; padding: 11px 0; border-radius: 10px; border: 1px solid #CBE6E8; background: #fff;
   color: #5C8A93; font-weight: 700; cursor: pointer;
