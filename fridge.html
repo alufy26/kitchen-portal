@@ -227,7 +227,11 @@ function renderList() {
   listEl.querySelectorAll("[data-remove]").forEach(btn => btn.addEventListener("click", async (e) => {
     e.stopPropagation();
     btn.textContent = "…";
-    try { await Api.remove(SHEET, btn.dataset.remove); await loadItems(); }
+    try {
+      await Api.remove(SHEET, btn.dataset.remove);
+      items = items.filter(i => i.id !== btn.dataset.remove);
+      renderAll();
+    }
     catch (err) { showError("削除に失敗しました: " + err.message); }
   }));
 }
@@ -324,10 +328,16 @@ async function saveForm() {
   const btn = document.getElementById("btnSave");
   btn.disabled = true;
   try {
-    if (editingId) await Api.update(SHEET, editingId, data);
-    else await Api.add(SHEET, data);
+    if (editingId) {
+      await Api.update(SHEET, editingId, data);
+      const idx = items.findIndex(i => i.id === editingId);
+      if (idx !== -1) items[idx] = { ...items[idx], ...data };
+    } else {
+      const result = await Api.add(SHEET, data);
+      items.push({ id: result.id, ...data });
+    }
     closeModal();
-    await loadItems();
+    renderAll();
   } catch (err) {
     showError("保存に失敗しました: " + err.message);
   } finally {

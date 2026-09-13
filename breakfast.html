@@ -93,7 +93,11 @@ function renderList() {
   `).join("");
   listEl.querySelectorAll("[data-remove]").forEach(btn => btn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    try { await Api.remove(SHEET, btn.dataset.remove); await loadItems(); }
+    try {
+      await Api.remove(SHEET, btn.dataset.remove);
+      items = items.filter(i => i.id !== btn.dataset.remove);
+      renderAll();
+    }
     catch (err) { showError("削除に失敗しました: " + err.message); }
   }));
 }
@@ -115,9 +119,11 @@ async function saveForm() {
   const btn = document.getElementById("btnSave");
   btn.disabled = true;
   try {
-    await Api.add(SHEET, { weekday: currentDay, name, memo: document.getElementById("fMemo").value.trim() });
+    const payload = { weekday: currentDay, name, memo: document.getElementById("fMemo").value.trim() };
+    const result = await Api.add(SHEET, payload);
+    items.push({ id: result.id, ...payload });
     closeModal();
-    await loadItems();
+    renderAll();
   } catch (err) { showError("追加に失敗しました: " + err.message); }
   finally { btn.disabled = false; }
 }
