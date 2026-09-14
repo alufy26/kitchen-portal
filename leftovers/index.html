@@ -6,6 +6,7 @@
 <title>余り物レシピ</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="../assets/pin-flow.js"></script>
 </head>
 <body>
 <div class="page">
@@ -74,6 +75,7 @@ async function openRecipe(recipe) {
     if (!res.ok) throw new Error("ファイルが見つかりません: " + recipe.file);
     const text = await res.text();
     body.innerHTML = marked.parse(text);
+    pinCookingFlowIn(body);
   } catch (e) {
     body.innerHTML = `<div style="color:#C55A1E;">読み込みに失敗しました。<br>${e.message}</div>`;
   }
