@@ -152,9 +152,34 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #1B7A8C; outline-
   background: #FFF8ED;
   border: 1px solid #F0DCB0;
   border-radius: 12px;
-  padding: 10px 14px 12px;
+  padding: 10px 14px;
   margin: -4px -6px 16px;
   box-shadow: 0 4px 10px -6px rgba(15,76,87,0.15);
 }
-.pinned-flow h1, .pinned-flow h2, .pinned-flow h3 { margin: 0 0 4px; font-size: 14px; }
-.pinned-flow p { margin: 4px 0 0; font-size: 13px; line-height: 1.7; }
+.pinned-flow summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  color: #8A6420;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pinned-flow summary::-webkit-details-marker { display: none; }
+.pinned-flow summary::after {
+  content: "詳細を見る ▾";
+  font-size: 11px;
+  font-weight: 500;
+  color: #B08A3D;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pinned-flow[open] summary::after { content: "閉じる ▴"; }
+.pinned-flow[open] summary { margin-bottom: 8px; }
+.pinned-flow-body { max-height: 45vh; overflow-y: auto; }
+.pinned-flow-body h1, .pinned-flow-body h2, .pinned-flow-body h3, .pinned-flow-body h4 { margin: 10px 0 4px; font-size: 13px; }
+.pinned-flow-body h1:first-child, .pinned-flow-body h2:first-child, .pinned-flow-body h3:first-child { margin-top: 0; }
+.pinned-flow-body p, .pinned-flow-body ul, .pinned-flow-body ol { margin: 4px 0; font-size: 13px; line-height: 1.7; }
+.pinned-flow-body hr { margin: 10px 0; border: none; border-top: 1px solid #F0DCB0; }
