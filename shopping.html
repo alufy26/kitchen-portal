@@ -261,21 +261,55 @@ function extractIngredients(mdText) {
   return out;
 }
 
-function isInStock(name) {
-  const q = normalize(name);
-  return fridgeItems.some(fi => {
-    const fn = normalize(fi.name);
-    return fn && (fn.includes(q) || q.includes(fn));
+let excludeList = [];
+
+// 名前の比較用に正規化する（全角/半角の統一、括弧書き「（片栗粉用）」等の除去、空白除去）。
+function normalizeName(s) {
+  return (s || "").toString()
+    .normalize("NFKC")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+// 在庫との照合。完全一致（正規化後）を「在庫あり」とし、
+// 部分一致（例：レシピ「トマト」と在庫「トマト缶」）は「似た在庫」として参考表示のみにする。
+function matchStock(name) {
+  const q = normalizeName(name);
+  const result = { exact: false, similar: [] };
+  if (!q) return result;
+  fridgeItems.forEach(fi => {
+    const fn = normalizeName(fi.name);
+    if (!fn) return;
+    if (fn === q) { result.exact = true; return; }
+    if (fn.length >= 2 && q.length >= 2 && (fn.includes(q) || q.includes(fn))) {
+      if (!result.similar.includes(fi.name)) result.similar.push(fi.name);
+    }
   });
+  return result;
 }
 function isAlreadyListed(name) {
-  const q = normalize(name);
-  return items.some(it => !it.checked && normalize(it.name) === q);
+  const q = normalizeName(name);
+  return items.some(it => !it.checked && normalizeName(it.name) === q);
+}
+// 除外リストとの照合は完全一致（正規化後）。部分一致にすると
+// 「水」で「サバ水煮缶」、「塩」で「塩こんぶ」まで除外されてしまうため。
+function isExcluded(name) {
+  const q = normalizeName(name);
+  if (!q) return false;
+  return excludeList.some(ex => normalizeName(ex) === q);
 }
 
 async function loadFridgeStock() {
   try { fridgeItems = await Api.list("FridgeItems"); }
   catch (e) { fridgeItems = []; }
+}
+
+async function loadExcludeList() {
+  try {
+    const res = await fetch(`./assets/shopping-exclude.json?_=${Date.now()}`);
+    excludeList = res.ok ? await res.json() : [];
+  } catch (e) { excludeList = []; }
 }
 
 async function buildCandidates() {
@@ -293,7 +327,8 @@ async function buildCandidates() {
       const ingredients = extractIngredients(text);
       ingredients.forEach(ing => {
         if (!ing.name) return;
-        const key = normalize(ing.name);
+        if (isExcluded(ing.name)) return;
+        const key = normalizeName(ing.name);
         if (!grouped[key]) grouped[key] = { name: ing.name, entries: [] };
         grouped[key].entries.push({ day, amount: ing.amount });
       });
@@ -301,15 +336,17 @@ async function buildCandidates() {
   }
 
   candidates = Object.values(grouped).map(c => {
-    const inStock = isInStock(c.name);
+    const stock = matchStock(c.name);
+    const inStock = stock.exact;
+    const similarStock = stock.similar;
     const alreadyListed = isAlreadyListed(c.name);
-    return { ...c, inStock, alreadyListed, checked: !inStock && !alreadyListed };
+    return { ...c, inStock, similarStock, alreadyListed, checked: !inStock && !alreadyListed };
   });
 
   if (candidates.length === 0) {
     statusEl.textContent = missingFiles.length === period.days.length
       ? "この期間のレシピ(.md)がまだ用意されていません。recipesフォルダにファイルを追加してください。"
-      : "この期間のレシピに「## 材料」欄の食材が見つかりませんでした。";
+      : "この期間のレシピに材料が見つかりませんでした（除外リストで全て除かれている場合もあります）。";
   } else {
     statusEl.textContent = "";
   }
@@ -334,6 +371,9 @@ function renderCandidates() {
     const detail = c.entries.map(e => `${DAY_LABEL[e.day]}${e.amount ? "："+escapeHtml(e.amount) : ""}`).join("　");
     const tags = [];
     if (c.inStock) tags.push(`<span class="tag" style="background:#E7F3E4;color:#5C8A4E;">在庫あり</span>`);
+    if (!c.inStock && c.similarStock && c.similarStock.length > 0) {
+      tags.push(`<span class="tag" style="background:#FEF6E8;color:#8A6420;">似た在庫：${c.similarStock.map(escapeHtml).join("、")}</span>`);
+    }
     if (c.alreadyListed) tags.push(`<span class="tag">追加済み</span>`);
     return `<label style="display:flex; align-items:flex-start; gap:10px; padding:8px 2px; border-bottom:1px solid #EAF4F4; cursor:pointer;">
       <input type="checkbox" data-idx="${i}" ${c.checked ? "checked" : ""} style="width:18px;height:18px;margin-top:2px;flex-shrink:0;">
@@ -381,6 +421,7 @@ document.getElementById("btnAddCandidates").addEventListener("click", addChecked
 async function initPage() {
   renderPeriodTabs();
   await loadFridgeStock();
+  await loadExcludeList();
   await loadItems();
   await buildCandidates();
 }
